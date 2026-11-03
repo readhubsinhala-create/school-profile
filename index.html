@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="School Profile photo gallery">
+  <title>School Profile</title>
+  <style>
+    :root { color-scheme: dark; --bg:#081426; --panel:#10233d; --text:#f3f7ff; --muted:#a9bad1; --accent:#73b7ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial, sans-serif; background:linear-gradient(145deg,#07111f,#102746); color:var(--text); min-height:100vh; }
+    header { padding:44px 20px 30px; text-align:center; background:rgba(4,13,26,.72); border-bottom:1px solid #29415f; }
+    header h1 { margin:0 0 10px; font-size:clamp(2rem,5vw,3.2rem); letter-spacing:.04em; }
+    header p { margin:0; color:var(--muted); }
+    main { width:min(1400px,94%); margin:30px auto 60px; }
+    .toolbar { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:18px; }
+    #count { color:var(--muted); font-size:.95rem; }
+    #search { width:min(320px,100%); padding:12px 14px; border-radius:10px; border:1px solid #385575; background:#0d1d32; color:white; font-size:1rem; }
+    #gallery { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; }
+    .photo { border:1px solid #2c4665; border-radius:12px; overflow:hidden; background:#10233d; cursor:pointer; padding:0; aspect-ratio:4/3; }
+    .photo img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .25s; }
+    .photo:hover img { transform:scale(1.04); }
+    #empty { display:none; color:var(--muted); padding:30px; text-align:center; }
+    #lightbox { display:none; position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.94); align-items:center; justify-content:center; padding:60px 70px; }
+    #lightbox.open { display:flex; }
+    #largeImage { max-width:100%; max-height:85vh; object-fit:contain; }
+    .lb-btn, #close { position:absolute; border:0; border-radius:50%; width:44px; height:44px; font-size:26px; color:white; background:rgba(255,255,255,.16); cursor:pointer; }
+    #close { top:18px; right:20px; } #prev { left:14px; } #next { right:14px; }
+    @media(max-width:1100px){#gallery{grid-template-columns:repeat(4,minmax(0,1fr));}}
+    @media(max-width:760px){#gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;} #lightbox{padding:55px 48px;}}
+    @media(max-width:460px){#gallery{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>School Profile</h1>
+    <p>A collection of school memories</p>
+  </header>
+  <main>
+    <div class="toolbar">
+      <span id="count">Loading photos...</span>
+      <input id="search" type="search" placeholder="Search photos by filename..." aria-label="Search photos">
+    </div>
+    <section id="gallery" aria-label="Photo gallery"></section>
+    <div id="empty">No photos found.</div>
+  </main>
+  <div id="lightbox" aria-modal="true" role="dialog">
+    <button id="close" aria-label="Close">×</button>
+    <button class="lb-btn" id="prev" aria-label="Previous photo">‹</button>
+    <img id="largeImage" alt="Selected school photo">
+    <button class="lb-btn" id="next" aria-label="Next photo">›</button>
+  </div>
+  <script>
+    // The photo list is generated automatically during GitHub deployment.
+    const photos = window.GALLERY_PHOTOS || [];
+    const gallery = document.getElementById('gallery');
+    const count = document.getElementById('count');
+    const search = document.getElementById('search');
+    const empty = document.getElementById('empty');
+    const lightbox = document.getElementById('lightbox');
+    const largeImage = document.getElementById('largeImage');
+    let visiblePhotos = photos.slice();
+    let currentIndex = 0;
+
+    function render() {
+      gallery.innerHTML = '';
+      visiblePhotos.forEach((src, index) => {
+        const button = document.createElement('button');
+        button.className = 'photo';
+        button.type = 'button';
+        button.setAttribute('aria-label', 'Open ' + src.split('/').pop());
+        const img = document.createElement('img');
+        img.src = src; img.alt = src.split('/').pop(); img.loading = 'lazy';
+        button.appendChild(img);
+        button.addEventListener('click', () => openPhoto(index));
+        gallery.appendChild(button);
+      });
+      count.textContent = visiblePhotos.length + ' photo(s)';
+      empty.style.display = visiblePhotos.length ? 'none' : 'block';
+    }
+    function openPhoto(index) {
+      currentIndex = index;
+      largeImage.src = visiblePhotos[currentIndex];
+      lightbox.classList.add('open');
+    }
+    function closePhoto() { lightbox.classList.remove('open'); largeImage.src = ''; }
+    function move(step) {
+      if (!visiblePhotos.length) return;
+      currentIndex = (currentIndex + step + visiblePhotos.length) % visiblePhotos.length;
+      largeImage.src = visiblePhotos[currentIndex];
+    }
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      visiblePhotos = photos.filter(p => p.split('/').pop().toLowerCase().includes(q));
+      render();
+    });
+    document.getElementById('close').addEventListener('click', closePhoto);
+    document.getElementById('prev').addEventListener('click', () => move(-1));
+    document.getElementById('next').addEventListener('click', () => move(1));
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) closePhoto(); });
+    document.addEventListener('keydown', e => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') closePhoto();
+      if (e.key === 'ArrowLeft') move(-1);
+      if (e.key === 'ArrowRight') move(1);
+    });
+    render();
+  </script>
+</body>
+</html>
